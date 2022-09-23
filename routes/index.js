@@ -8,6 +8,8 @@ router.post('/inventory', inventoryController.inventoryPost);
 router.put('/inventory/:id', inventoryController.inventoryPut);
 router.delete('/inventory/:id', inventoryController.inventoryDelete);
 
+router.get('/inventory/:id', inventoryController.inventoryItemGet);
+
 router.get('/categories', categoriesController.categoriesGet);
 router.post('/categories', categoriesController.categoriesPost);
 router.put('/categories/:id', categoriesController.categoriesPut);
