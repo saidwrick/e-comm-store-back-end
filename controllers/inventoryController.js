@@ -9,26 +9,22 @@ exports.inventoryGet = function (req, res, next){
             })
         }
 
-        let q = `SELECT inventory.*, categories.name AS category 
+        let q = `SELECT SQL_CALC_FOUND_ROWS inventory.*, categories.name AS category 
         FROM inventory 
         LEFT JOIN categories ON inventory.category_id = categories.category_id `;
         
         let filters = [];
 
-        if (req.headers.offset){
-            filters.push(`inventory.item_id > ${req.headers.offset}`)
-        }
-
-        if (req.headers.category){
-            filters.push(`inventory.category_id = ${req.headers.category}`)
+        if (req.query.category){
+            filters.push(`inventory.category_id = ${req.query.category}`)
         }
 
         // if (req.get(price)){
         //     filters.push(`inventory.price >= ${req.body.price[0]} AND inventory.price <= ${req.body.price[1]} `)
         // }
 
-        if (req.headers.search){
-            filters.push(`inventory.name LIKE '%${req.headers.search}%'`)
+        if (req.query.search){
+            filters.push(`inventory.name LIKE '%${req.query.search}%'`)
         }
 
         if (filters.length > 0){
@@ -36,9 +32,9 @@ exports.inventoryGet = function (req, res, next){
             q += `WHERE ${where} `;
         }
 
-        console.log(req.headers.order)
+        console.log(req.query.order)
 
-        switch (req.headers.order){
+        switch (req.query.order){
             case "priceAsc":
                 q += `ORDER BY inventory.price ASC `
                 break;
@@ -58,7 +54,14 @@ exports.inventoryGet = function (req, res, next){
                 q += `ORDER BY inventory.item_id DESC `
                 break;
             default:
+                q += `ORDER BY inventory.item_id DESC `
                 break;
+        }
+
+        q += `LIMIT 10 `;
+
+        if (req.query.offset > 0){
+            q += `OFFSET ${req.query.offset}`;
         }
         
         con.query(q, function (err, data){
@@ -68,8 +71,21 @@ exports.inventoryGet = function (req, res, next){
                 })
             }
             console.log(data)
-            res.status(200).json(data)
-            con.release();
+            con.query("SELECT FOUND_ROWS()", function (err, total){
+                if (err){
+                    console.log(err)
+                    return res.status(500).json({
+                        message: "failed to retrieve inventory"
+                    })
+                }
+                console.log(total)
+                let result = {
+                    "inventory" : data,
+                    "count" : total[0]["FOUND_ROWS()"]
+                }
+                res.status(200).json(result)
+                con.release();
+            })
         })
     })
 }
