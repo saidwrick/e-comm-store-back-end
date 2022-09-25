@@ -8,10 +8,59 @@ exports.inventoryGet = function (req, res, next){
                 message: "failed to connect to database"
             })
         }
-        const q = `SELECT inventory.*, categories.name AS category 
-        FROM inventory 
-        LEFT JOIN categories ON inventory.category_id = categories.category_id;`
 
+        let q = `SELECT inventory.*, categories.name AS category 
+        FROM inventory 
+        LEFT JOIN categories ON inventory.category_id = categories.category_id `;
+        
+        let filters = [];
+
+        if (req.headers.offset){
+            filters.push(`inventory.item_id > ${req.headers.offset}`)
+        }
+
+        if (req.headers.category){
+            filters.push(`inventory.category_id = ${req.headers.category}`)
+        }
+
+        // if (req.get(price)){
+        //     filters.push(`inventory.price >= ${req.body.price[0]} AND inventory.price <= ${req.body.price[1]} `)
+        // }
+
+        if (req.headers.search){
+            filters.push(`inventory.name LIKE '%${req.headers.search}%'`)
+        }
+
+        if (filters.length > 0){
+            let where = filters.join(" AND ");
+            q += `WHERE ${where} `;
+        }
+
+        console.log(req.headers.order)
+
+        switch (req.headers.order){
+            case "priceAsc":
+                q += `ORDER BY inventory.price ASC `
+                break;
+            case "priceDesc":
+                q += `ORDER BY inventory.price DESC `
+                break;
+            case "alphaAsc":
+                q += `ORDER BY inventory.name ASC `
+                break;
+            case "alphaDesc":
+                q += `ORDER BY inventory.name DESC `
+                break;
+            case "dateAsc":
+                q += `ORDER BY inventory.item_id ASC `
+                break;
+            case "dateDesc":
+                q += `ORDER BY inventory.item_id DESC `
+                break;
+            default:
+                break;
+        }
+        
         con.query(q, function (err, data){
             if (err){
                 return res.status(500).json({
