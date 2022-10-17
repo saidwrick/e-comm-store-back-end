@@ -114,12 +114,12 @@ exports.inventoryItemGet = function (req, res, next){
 
 // schema = item_id, name, price, image, description, quantity, category_id
 exports.inventoryPost = [
-    body('name', 'name required').trim().isLength({ min: 1, max: 250 }).withMessage("name must be between 1 and 250 chars").escape(),
-    body('price', 'price required').trim().isFloat({min: 0.01}).withMessage("price must be greater than 0.01").escape(),
+    body('name', 'name required').trim().isLength({ min: 1, max: 250 }).withMessage("name must be between 1 and 250 chars"),
+    body('price', 'price required').trim().isFloat({min: 0.01}).withMessage("price must be greater than 0.01"),
     body('imgUrl', 'image required').trim().isLength({ min: 1 }),
-    body('desc', 'description required').trim().isLength({ min: 1, max:1000 }).withMessage("description must be between 1 and 1000 chars").escape(),
-    body('quant', 'quantity required').trim().isInt().withMessage("quantity must be a whole number").escape(),
-    body('catId', 'category required').trim().isLength({ min: 1 }).escape(),
+    body('desc', 'description required').trim().isLength({ min: 1, max:1000 }).withMessage("description must be between 1 and 1000 chars"),
+    body('quant', 'quantity required').trim().isInt().withMessage("quantity must be a whole number"),
+    body('catId', 'category required').trim().isLength({ min: 1 }),
     (req, res, next) => {
 
         const errors = validationResult(req);
@@ -161,12 +161,12 @@ exports.inventoryPost = [
 ]
 
 exports.inventoryPut = [
-    body('name', 'name required').trim().isLength({ min: 1, max: 250 }).withMessage("name must be between 1 and 250 chars").escape().exists(),
-    body('price', 'price required').trim().isFloat({min: 0.01}).withMessage("price must be greater than 0.01").escape(),
+    body('name', 'name required').trim().isLength({ min: 1, max: 250 }).withMessage("name must be between 1 and 250 chars").exists(),
+    body('price', 'price required').trim().isFloat({min: 0.01}).withMessage("price must be greater than 0.01"),
     body('imgUrl', 'image required').trim().isLength({ min: 1 }),
-    body('desc', 'description required').trim().isLength({ min: 1, max:1000 }).withMessage("description must be between 1 and 1000 chars").escape(),
-    body('quant', 'quantity required').trim().isInt().withMessage("quantity must be a whole number").escape(),
-    body('catId', 'category required').trim().isLength({ min: 1 }).escape(),
+    body('desc', 'description required').trim().isLength({ min: 1, max:1000 }).withMessage("description must be between 1 and 1000 chars"),
+    body('quant', 'quantity required').trim().isInt().withMessage("quantity must be a whole number"),
+    body('catId', 'category required').trim().isLength({ min: 1 }),
     (req, res, next) => {
 
         const errors = validationResult(req);

@@ -21,7 +21,7 @@ exports.categoriesGet = function (req, res, next){
 }
 
 exports.categoriesPost = [
-    body('name', 'name required').trim().isLength({ min: 1, max: 255 }).withMessage("name must be between 1 and 255 chars").escape(),
+    body('name', 'name required').trim().isLength({ min: 1, max: 255 }).withMessage("name must be between 1 and 255 chars"),
     (req, res, next) => {
     
         const errors = validationResult(req);
@@ -69,7 +69,7 @@ exports.categoriesPost = [
 ]
 
 exports.categoriesPut = [
-    body('name', 'name required').trim().isLength({ min: 1, max: 255 }).withMessage("name must be between 1 and 255 chars").escape(),
+    body('name', 'name required').trim().isLength({ min: 1, max: 255 }).withMessage("name must be between 1 and 255 chars"),
     (req, res, next) => {
     
         const errors = validationResult(req);
