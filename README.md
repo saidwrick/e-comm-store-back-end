@@ -1,6 +1,6 @@
 # Storeify
 
-Fullstack E-Commerce platform. Allows users to manage store inventory and display items for browsing in a customer-facing online store. 
+Full Stack E-Commerce platform. Allows users to manage store inventory and display items for browsing in a customer-facing online store. 
 
 Note: this is a demo version, so certain features (user accounts, checkout flow, etc.) haven't been implemented. 
 
