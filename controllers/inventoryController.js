@@ -1,15 +1,14 @@
 const db = require('../config/config.js');
-const mysql = require('mysql2');
 const { body, validationResult } = require("express-validator");
-
+const sql = require('yesql').pg
 
 exports.inventoryGet = function (req, res, next){
-    db.getConnection(function (err, con){
+    db.connect(function (err, con, done) {
         if (err) {
             return res.status(500).json("failed to connect to database")
         }
 
-        let q = `SELECT SQL_CALC_FOUND_ROWS inventory.*, categories.name AS category 
+        let q = `SELECT inventory.*, count(*) OVER() AS full_count, categories.name AS category
         FROM inventory 
         LEFT JOIN categories ON inventory.category_id = categories.category_id `;
         
@@ -25,7 +24,7 @@ exports.inventoryGet = function (req, res, next){
             // }
 
         if (req.query.search){
-            filters.push(`inventory.name LIKE '%${req.query.search}%'`)
+            filters.push(`inventory.name ILIKE '%${req.query.search}%'`)
         }
 
         if (filters.length > 0){
@@ -64,31 +63,32 @@ exports.inventoryGet = function (req, res, next){
         if (req.query.offset > 0){
             q += `OFFSET ${req.query.offset}`;
         }
-        
+
         con.query(q, function (err, data){
             if (err){
+                console.log('hereasdf')
                 return res.status(404).json("failed to retrieve inventory")
             }
             console.log(data)
-            con.query("SELECT FOUND_ROWS()", function (err, total){
-                if (err){
-                    console.log(err)
-                    return res.status(404).json("failed to retrieve inventory")
-                }
-                console.log(total)
-                let result = {
-                    "inventory" : data,
-                    "count" : total[0]["FOUND_ROWS()"]
-                }
-                res.status(200).json(result)
-                con.release();
-            })
+            
+            let fullCount = 0
+            if (data.rows.length > 0){
+                fullCount = data.rows[0].full_count
+            }
+
+            let result = {
+                "inventory" : data.rows,
+                "count" : fullCount
+            }
+            res.status(200).json(result)
+            con.release();
         })
     })
 }
 
+
 exports.inventoryItemGet = function (req, res, next){
-    db.getConnection(function (err, con){
+    db.connect(function (err, con){
         if (err) {
             return res.status(500).json("failed to connect to database")
         }
@@ -98,7 +98,7 @@ exports.inventoryItemGet = function (req, res, next){
         const q = `SELECT inventory.*, categories.name AS category 
         FROM inventory
         LEFT JOIN categories ON inventory.category_id = categories.category_id
-        WHERE inventory.item_id = (?);`
+        WHERE inventory.item_id = $1;`
 
         con.query(q, [id], function (err, data){
             if (err || data.length <= 0){
@@ -106,7 +106,7 @@ exports.inventoryItemGet = function (req, res, next){
                 return res.status(404).json("failed to retrieve item")
             }
             console.log(data)
-            res.status(200).json(data)
+            res.status(200).json(data.rows)
             con.release();
         })
     })
@@ -139,20 +139,21 @@ exports.inventoryPost = [
         }
 
         else {
-            db.getConnection(function (err, con){
+            db.connect(function (err, con){
                 if (err) {
                     return res.status(500).json("failed to connect to database")
                 }
 
-                const values = [null, req.body.name, req.body.price, req.body.imgUrl, req.body.desc, req.body.quant, req.body.catId]
+                const values = [req.body.name, req.body.price, req.body.imgUrl, req.body.desc, req.body.quant, req.body.catId]
 
-                con.query("INSERT INTO inventory VALUES (?)", [values], function (err, data){
+                con.query(`INSERT INTO inventory (name, price, image, description, quantity, category_id) 
+                    VALUES ($1,$2,$3,$4,$5,$6) `, values, function (err, data){
                     if (err){
                         console.log(err)
                         return res.status(400).json("failed to add inventory item")
                     }
                     console.log(data)
-                    res.status(200).json(data)
+                    res.status(200).json(data.rows)
                     con.release();
                 })
             })
@@ -186,12 +187,12 @@ exports.inventoryPut = [
         }
 
         else {
-            db.getConnection(function (err, con){
+            db.connect(function (err, con){
                 if (err) {
                     return res.status(500).json("failed to connect to database")
                 }
 
-                const values = {
+                const valueas = {
                     name: req.body.name, 
                     price: req.body.price, 
                     image: req.body.imgUrl,
@@ -200,15 +201,33 @@ exports.inventoryPut = [
                     category_id: req.body.catId
                 }
 
+                const values = [
+                    req.body.name, 
+                    req.body.price, 
+                    req.body.imgUrl,
+                    req.body.desc, 
+                    req.body.quant, 
+                    req.body.catId,
+                    req.params.id
+                ]
+
                 const id = req.params.id
 
-                con.query("UPDATE inventory SET ? WHERE item_id = ?", [values, id], function (err, data){
+                con.query(`UPDATE inventory SET 
+                            name = $1, 
+                            price = $2, 
+                            image = $3, 
+                            description = $4,
+                            quantity = $5,
+                            category_id = $6 
+                        WHERE item_id = $7`, 
+                    values, function (err, data){
                     if (err){
                         console.log(err)
                         return res.status(400).json("failed to update inventory item")
                     }
                     console.log(data)
-                    res.status(200).json(data)
+                    res.status(200).json(data.rows)
                     con.release();
                 })
             })
@@ -217,20 +236,20 @@ exports.inventoryPut = [
 ]
 
 exports.inventoryDelete = function (req, res, next){
-    db.getConnection(function (err, con){
+    db.connect(function (err, con){
         if (err) {
             return res.status(500).json("failed to connect to database")
         }
 
         const id = req.params.id
 
-        con.query("DELETE FROM inventory WHERE item_id = ?", [id], function (err, data){
+        con.query("DELETE FROM inventory WHERE item_id = $1", [id], function (err, data){
             if (err){
                 console.log(err)
                 return res.status(400).json("failed to delete inventory item")
             }
             console.log(data)
-            res.status(200).json(data)
+            res.status(200).json(data.rows)
             con.release();
         })
     })

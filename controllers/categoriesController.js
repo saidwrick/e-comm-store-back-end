@@ -1,12 +1,12 @@
 const db = require('../config/config.js');
-const mysql = require('mysql2');
 const { body, validationResult } = require("express-validator");
 
 exports.categoriesGet = function (req, res, next){
-    db.getConnection(function (err, con){
+    db.connect(function (err, con, done) {
         if (err) {
             return res.status(500).json("failed to connect to database")
         }
+    
         const q = `SELECT * FROM categories ORDER BY name`
 
         con.query(q, function (err, data){
@@ -14,7 +14,7 @@ exports.categoriesGet = function (req, res, next){
                 return res.status(500).json("failed to retrieve inventory")
             }
             console.log(data)
-            res.status(200).json(data)
+            res.status(200).json(data.rows)
             con.release();
         })
     })
@@ -42,17 +42,15 @@ exports.categoriesPost = [
         }
 
         else {
-            db.getConnection(function (err, con){
+            db.connect(function (err, con){
                 if (err) {
                     return res.status(500).json("failed to connect to database")
                 }
 
-                const values = [null, req.body.name]
-
-                con.query("INSERT INTO categories VALUES (?)", [values], function (err, data){
+                con.query("INSERT INTO categories (name) VALUES ($1)", [req.body.name], function (err, data){
                     if (err){
                         console.log(err)
-                        if (err.errno == 1062){
+                        if (err.code == 23505){
                             return res.status(409).json("category name already exists")
                         }
                         else {
@@ -89,20 +87,17 @@ exports.categoriesPut = [
             return res.status(400).json(errorString)
         }
         else {
-            db.getConnection(function (err, con){
+            db.connect(function (err, con){
                 if (err) {
                     return res.status(500).json("failed to connect to database")
                 }
-        
-                const values = {
-                    name : req.body.name
-                }
+
                 const id = req.params.id
         
-                con.query("UPDATE categories SET ? WHERE category_id = ?", [values, id], function (err, data){
+                con.query("UPDATE categories SET name = $1 WHERE category_id = $2", [req.body.name, id], function (err, data){
                     if (err){
                         console.log(err)
-                        if (err.errno == 1062){
+                        if (err.code == 23505){
                             return res.status(409).json("category name already exists")
                         }
                         return res.status(500).json("failed to update category")
@@ -117,17 +112,17 @@ exports.categoriesPut = [
 ]
 
 exports.categoriesDelete = function (req, res, next){
-    db.getConnection(function (err, con){
+    db.connect(function (err, con){
         if (err) {
             return res.status(500).json("failed to connect to database")
         }
 
         const id = req.params.id
 
-        con.query("DELETE FROM categories WHERE category_id=(?)", [id], function (err, data){
+        con.query("DELETE FROM categories WHERE category_id= $1", [id], function (err, data){
             if (err){
                 console.log(err)
-                if (err.errno == 1451){
+                if (err.code == 23503){
                     return res.status(409).json("items still using this category")
                 }
                 else{
